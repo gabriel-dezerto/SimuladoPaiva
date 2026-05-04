@@ -3,16 +3,14 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Loader2, Plus, Trash2, Edit2 } from 'lucide-react';
 
 export default function Clientes() {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [formData, setFormData] = useState({
     nome_usuario: '',
@@ -57,16 +55,21 @@ export default function Clientes() {
       const data = await response.json();
       if (data.sucesso) {
         buscarClientes();
-        setOpenDialog(false);
+        setShowModal(false);
         setFormData({ nome_usuario: '', email: '', telefone: '', senha: '' });
         setEditando(null);
+      } else {
+        setError(data.mensagem || 'Erro ao salvar cliente');
       }
     } catch (err) {
+      setError('Erro ao salvar cliente');
       console.error(err);
     }
   };
 
   const handleExcluir = async (id) => {
+    if (!confirm('Tem certeza que deseja excluir este cliente?')) return;
+    
     try {
       const response = await fetch(`/api/clientes/${id}`, { method: 'DELETE' });
       const data = await response.json();
@@ -86,13 +89,19 @@ export default function Clientes() {
       telefone: cliente.telefone || '',
       senha: ''
     });
-    setOpenDialog(true);
+    setShowModal(true);
   };
 
   const handleNovoCliente = () => {
     setEditando(null);
     setFormData({ nome_usuario: '', email: '', telefone: '', senha: '' });
-    setOpenDialog(true);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditando(null);
+    setFormData({ nome_usuario: '', email: '', telefone: '', senha: '' });
   };
 
   if (loading) {
@@ -110,70 +119,10 @@ export default function Clientes() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Clientes</h1>
-          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={handleNovoCliente} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Cliente
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editando ? 'Editar Cliente' : 'Novo Cliente'}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                  <Input
-                    required
-                    value={formData.nome_usuario}
-                    onChange={(e) => setFormData({ ...formData, nome_usuario: e.target.value })}
-                    placeholder="Nome do cliente"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <Input
-                    required
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                  <Input
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                    placeholder="(11) 99999-9999"
-                  />
-                </div>
-                {!editando && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                    <Input
-                      required={!editando}
-                      type="password"
-                      value={formData.senha}
-                      onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                      placeholder="Senha"
-                    />
-                  </div>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => setOpenDialog(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                    {editando ? 'Atualizar' : 'Criar'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={handleNovoCliente} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Cliente
+          </Button>
         </div>
 
         {error && (
@@ -214,28 +163,13 @@ export default function Clientes() {
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja excluir o cliente {cliente.nome_usuario}?
-                            </AlertDialogDescription>
-                            <div className="flex gap-2 justify-end">
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleExcluir(cliente.id_user)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </div>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleExcluir(cliente.id_user)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -245,6 +179,71 @@ export default function Clientes() {
           </Table>
         </div>
       </div>
+
+      {/* Modal Simples */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={handleCloseModal}
+          />
+          <div className="relative z-50 w-full max-w-lg bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              {editando ? 'Editar Cliente' : 'Novo Cliente'}
+            </h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                <Input
+                  required
+                  value={formData.nome_usuario}
+                  onChange={(e) => setFormData({ ...formData, nome_usuario: e.target.value })}
+                  placeholder="Nome do cliente"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <Input
+                  required
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <Input
+                  value={formData.telefone}
+                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                />
+              </div>
+              {!editando && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                  <Input
+                    required={!editando}
+                    type="password"
+                    value={formData.senha}
+                    onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                    placeholder="Senha"
+                  />
+                </div>
+              )}
+              <div className="flex gap-2 justify-end mt-6">
+                <Button type="button" variant="outline" onClick={handleCloseModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  {editando ? 'Atualizar' : 'Criar'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
