@@ -96,7 +96,6 @@ class EmprestimoController {
                 eqp_id,
                 data_saida: new Date().toISOString().split('T')[0],
                 data_dev_prevista,
-                data_dev_real: null,
                 status_empr: 'Aberto'
             };
 
