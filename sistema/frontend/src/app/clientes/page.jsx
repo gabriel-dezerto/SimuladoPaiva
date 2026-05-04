@@ -30,7 +30,7 @@ export default function Clientes() {
       const response = await fetch('/api/clientes?pagina=1&limite=100');
       const data = await response.json();
       if (data.sucesso) {
-        setClientes(data.dados.clientes);
+        setClientes(data.dados.usuarios || []);
       }
     } catch (err) {
       setError('Erro ao buscar clientes');
@@ -142,7 +142,7 @@ export default function Clientes() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clientes.length === 0 ? (
+              {clientes && clientes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan="4" className="text-center py-8 text-gray-500">
                     Nenhum cliente cadastrado
