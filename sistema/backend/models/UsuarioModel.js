@@ -59,10 +59,10 @@ class UsuarioModel {
     static async criar(dadosUsuario) {
         try {
             // Hash da senha antes de salvar
-            const senhaHash = await hashPassword(dadosUsuario.senha);
+            const senhaHash = await hashPassword(dadosUsuario.senha_hash);
             const dadosComHash = {
                 ...dadosUsuario,
-                senha: senhaHash
+                senha_hash: senhaHash
             };
             
             return await create('usuarios', dadosComHash);
@@ -76,8 +76,8 @@ class UsuarioModel {
     static async atualizar(id, dadosUsuario) {
         try {
             // Se a senha foi fornecida, fazer hash
-            if (dadosUsuario.senha) {
-                dadosUsuario.senha = await hashPassword(dadosUsuario.senha);
+            if (dadosUsuario.senha_hash) {
+                dadosUsuario.senha_hash = await hashPassword(dadosUsuario.senha_hash);
             }
             
             return await update('usuarios', dadosUsuario, `id_user = ${id}`);
@@ -106,14 +106,14 @@ class UsuarioModel {
                 return null;
             }
 
-            const senhaValida = await comparePassword(senha, usuario.senha);
+            const senhaValida = await comparePassword(senha, usuario.senha_hash);
             
             if (!senhaValida) {
                 return null;
             }
 
             // Retornar usuário sem a senha
-            const { senha: _, ...usuarioSemSenha } = usuario;
+            const { senha_hash: _, ...usuarioSemSenha } = usuario;
             return usuarioSemSenha;
         } catch (error) {
             console.error('Erro ao verificar credenciais:', error);

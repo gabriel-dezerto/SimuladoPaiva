@@ -66,7 +66,7 @@ class ClienteController {
                 nome_usuario,
                 email,
                 telefone: telefone || null,
-                senha
+                senha_hash: senha
             };
 
             const clienteId = await UsuarioModel.criar(dadosCliente);
@@ -107,7 +107,7 @@ class ClienteController {
             if (nome_usuario) dadosAtualizacao.nome_usuario = nome_usuario;
             if (email) dadosAtualizacao.email = email;
             if (telefone) dadosAtualizacao.telefone = telefone;
-            if (senha) dadosAtualizacao.senha = senha;
+            if (senha) dadosAtualizacao.senha_hash = senha;
 
             if (Object.keys(dadosAtualizacao).length === 0) {
                 throw new ApiError('Nenhum dado para atualizar', 400);
