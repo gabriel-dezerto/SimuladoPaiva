@@ -1,7 +1,7 @@
 export async function PUT(request, { params }) {
   try {
     const { id } = params;
-    const response = await fetch(`http://localhost:3002/api/emprestimos/${id}/devolver`, {
+    const response = await fetch(`http://localhost:3000/api/emprestimos/${id}/devolver`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
     });

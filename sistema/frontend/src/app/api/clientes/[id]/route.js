@@ -1,7 +1,7 @@
 export async function GET(request, { params }) {
   try {
     const { id } = params;
-    const response = await fetch(`http://localhost:3002/api/clientes/${id}`, {
+    const response = await fetch(`http://localhost:3000/api/clientes/${id}`, {
       method: 'GET',
     });
 
@@ -21,7 +21,7 @@ export async function PUT(request, { params }) {
     const { id } = params;
     const body = await request.json();
 
-    const response = await fetch(`http://localhost:3002/api/clientes/${id}`, {
+    const response = await fetch(`http://localhost:3000/api/clientes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -41,7 +41,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = params;
-    const response = await fetch(`http://localhost:3002/api/clientes/${id}`, {
+    const response = await fetch(`http://localhost:3000/api/clientes/${id}`, {
       method: 'DELETE',
     });
 

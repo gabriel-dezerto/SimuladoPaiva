@@ -5,9 +5,9 @@ export async function GET(request) {
     const limite = searchParams.get('limite') || '100';
     const emAberto = searchParams.get('em-aberto');
 
-    let url = `http://localhost:3002/api/emprestimos?pagina=${pagina}&limite=${limite}`;
+    let url = `http://localhost:3000/api/emprestimos?pagina=${pagina}&limite=${limite}`;
     if (emAberto) {
-      url = `http://localhost:3002/api/emprestimos/em-aberto`;
+      url = `http://localhost:3000/api/emprestimos/em-aberto`;
     }
 
     const response = await fetch(url, { method: 'GET' });
@@ -26,7 +26,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
-    const response = await fetch('http://localhost:3002/api/emprestimos', {
+    const response = await fetch('http://localhost:3000/api/emprestimos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

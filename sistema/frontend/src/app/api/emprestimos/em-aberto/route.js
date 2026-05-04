@@ -1,6 +1,6 @@
 export async function GET(request) {
   try {
-    const response = await fetch('http://localhost:3002/api/emprestimos/em-aberto', {
+    const response = await fetch('http://localhost:3000/api/emprestimos/em-aberto', {
       method: 'GET',
     });
 

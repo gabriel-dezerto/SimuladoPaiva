@@ -5,7 +5,7 @@ export async function GET(request) {
     const limite = searchParams.get('limite') || '100';
 
     const response = await fetch(
-      `http://localhost:3002/api/clientes?pagina=${pagina}&limite=${limite}`,
+      `http://localhost:3000/api/clientes?pagina=${pagina}&limite=${limite}`,
       { method: 'GET' }
     );
 
@@ -24,7 +24,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
-    const response = await fetch('http://localhost:3002/api/clientes', {
+    const response = await fetch('http://localhost:3000/api/clientes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
