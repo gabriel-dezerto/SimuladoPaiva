@@ -1,50 +1,40 @@
+'use client';
+
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-const DialogContext = React.createContext()
+const DialogContext = React.createContext(null)
 
-function Dialog({ open, onOpenChange, children }) {
-  const [internalOpen, setInternalOpen] = React.useState(open ?? false)
+export function Dialog({ open, onOpenChange, children }) {
+  const [internalOpen, setInternalOpen] = React.useState(false)
   
-  // Se open for controlado externamente, use-o
-  const isControlled = open !== undefined
-  const isOpen = isControlled ? open : internalOpen
-
-  const handleOpenChange = (newOpen) => {
-    if (!isControlled) {
-      setInternalOpen(newOpen)
-    }
-    onOpenChange?.(newOpen)
-  }
+  const isOpen = open !== undefined ? open : internalOpen
 
   return (
-    <DialogContext.Provider value={{ isOpen, setIsOpen: handleOpenChange }}>
+    <DialogContext.Provider value={{ isOpen, onOpenChange, setInternalOpen }}>
       {children}
     </DialogContext.Provider>
   )
 }
 
-function DialogTrigger({ asChild, children, onClick, ...props }) {
+export function DialogTrigger({ asChild, children, ...props }) {
   const context = React.useContext(DialogContext)
-  
-  if (!context) {
-    throw new Error("DialogTrigger deve estar dentro de um Dialog")
+  if (!context) return null
+
+  const { onOpenChange, setInternalOpen } = context
+
+  const handleClick = () => {
+    if (onOpenChange) {
+      onOpenChange(true)
+    } else {
+      setInternalOpen(true)
+    }
   }
 
-  const { setIsOpen } = context
-
-  const handleClick = (e) => {
-    setIsOpen(true)
-    onClick?.(e)
-  }
-
-  if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, { 
-      onClick: (e) => {
-        children.props.onClick?.(e)
-        handleClick(e)
-      },
-      ...props 
+  if (asChild) {
+    return React.cloneElement(children, {
+      onClick: handleClick,
+      ...props,
     })
   }
 
@@ -55,26 +45,31 @@ function DialogTrigger({ asChild, children, onClick, ...props }) {
   )
 }
 
-function DialogContent({ children, className, ...props }) {
+export function DialogContent({ children, className, ...props }) {
   const context = React.useContext(DialogContext)
-  
-  if (!context) {
-    throw new Error("DialogContent deve estar dentro de um Dialog")
-  }
+  if (!context) return null
 
-  const { isOpen, setIsOpen } = context
+  const { isOpen, onOpenChange, setInternalOpen } = context
 
   if (!isOpen) return null
 
+  const handleClose = () => {
+    if (onOpenChange) {
+      onOpenChange(false)
+    } else {
+      setInternalOpen(false)
+    }
+  }
+
   return (
-    <>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="fixed inset-0 z-40 bg-black/50"
-        onClick={() => setIsOpen(false)}
+        className="fixed inset-0 bg-black/50"
+        onClick={handleClose}
       />
       <div
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border bg-background p-6 shadow-lg rounded-lg",
+          "relative z-50 w-full max-w-lg border bg-white p-6 shadow-lg rounded-lg",
           className
         )}
         onClick={(e) => e.stopPropagation()}
@@ -82,27 +77,18 @@ function DialogContent({ children, className, ...props }) {
       >
         {children}
       </div>
-    </>
+    </div>
   )
 }
 
-function DialogHeader({ className, ...props }) {
+export function DialogHeader({ className, ...props }) {
   return <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
 }
 
-function DialogTitle({ className, ...props }) {
+export function DialogTitle({ className, ...props }) {
   return <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
 }
 
-function DialogDescription({ className, ...props }) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />
-}
-
-export {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+export function DialogDescription({ className, ...props }) {
+  return <p className={cn("text-sm text-gray-600", className)} {...props} />
 }
