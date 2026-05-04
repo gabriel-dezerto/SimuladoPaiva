@@ -4,16 +4,16 @@ import { cn } from "@/lib/utils"
 const DialogContext = React.createContext()
 
 function Dialog({ open, onOpenChange, children }) {
-  const [isOpen, setIsOpen] = React.useState(open ?? false)
-
-  React.useEffect(() => {
-    if (open !== undefined) {
-      setIsOpen(open)
-    }
-  }, [open])
+  const [internalOpen, setInternalOpen] = React.useState(open ?? false)
+  
+  // Se open for controlado externamente, use-o
+  const isControlled = open !== undefined
+  const isOpen = isControlled ? open : internalOpen
 
   const handleOpenChange = (newOpen) => {
-    setIsOpen(newOpen)
+    if (!isControlled) {
+      setInternalOpen(newOpen)
+    }
     onOpenChange?.(newOpen)
   }
 
@@ -25,15 +25,27 @@ function Dialog({ open, onOpenChange, children }) {
 }
 
 function DialogTrigger({ asChild, children, onClick, ...props }) {
-  const { setIsOpen } = React.useContext(DialogContext)
+  const context = React.useContext(DialogContext)
+  
+  if (!context) {
+    throw new Error("DialogTrigger deve estar dentro de um Dialog")
+  }
+
+  const { setIsOpen } = context
 
   const handleClick = (e) => {
     setIsOpen(true)
     onClick?.(e)
   }
 
-  if (asChild) {
-    return React.cloneElement(children, { onClick: handleClick, ...props })
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, { 
+      onClick: (e) => {
+        children.props.onClick?.(e)
+        handleClick(e)
+      },
+      ...props 
+    })
   }
 
   return (
@@ -44,7 +56,13 @@ function DialogTrigger({ asChild, children, onClick, ...props }) {
 }
 
 function DialogContent({ children, className, ...props }) {
-  const { isOpen, setIsOpen } = React.useContext(DialogContext)
+  const context = React.useContext(DialogContext)
+  
+  if (!context) {
+    throw new Error("DialogContent deve estar dentro de um Dialog")
+  }
+
+  const { isOpen, setIsOpen } = context
 
   if (!isOpen) return null
 
@@ -59,6 +77,7 @@ function DialogContent({ children, className, ...props }) {
           "fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] border bg-background p-6 shadow-lg rounded-lg",
           className
         )}
+        onClick={(e) => e.stopPropagation()}
         {...props}
       >
         {children}
