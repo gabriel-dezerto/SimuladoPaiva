@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 export default function Emprestimos() {
   const [emprestimos, setEmprestimos] = useState([]);
@@ -13,8 +12,8 @@ export default function Emprestimos() {
   const [equipamentos, setEquipamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [emprestimoData, setEmprestimoData] = useState({
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
     usuario_id: '',
     eqp_id: '',
     data_dev_prevista: ''
@@ -28,7 +27,7 @@ export default function Emprestimos() {
   const buscarDados = async () => {
     try {
       setLoading(true);
-      const [empRes, cliRes, equipRes] = await Promise.all([
+      const [empRes, cliRes, eqpRes] = await Promise.all([
         fetch('/api/emprestimos?pagina=1&limite=100'),
         fetch('/api/clientes?pagina=1&limite=100'),
         fetch('/api/equipamentos?pagina=1&limite=100')
@@ -36,11 +35,11 @@ export default function Emprestimos() {
 
       const empData = await empRes.json();
       const cliData = await cliRes.json();
-      const equipData = await equipRes.json();
+      const eqpData = await eqpRes.json();
 
-      if (empData.sucesso) setEmprestimos(empData.dados.emprestimos);
-      if (cliData.sucesso) setClientes(cliData.dados.clientes);
-      if (equipData.sucesso) setEquipamentos(equipData.dados.equipamentos);
+      if (empData.sucesso) setEmprestimos(empData.dados.emprestimos || []);
+      if (cliData.sucesso) setClientes(cliData.dados.usuarios || []);
+      if (eqpData.sucesso) setEquipamentos(eqpData.dados.equipamentos || []);
     } catch (err) {
       setError('Erro ao buscar dados');
       console.error(err);
@@ -55,32 +54,61 @@ export default function Emprestimos() {
       const response = await fetch('/api/emprestimos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(emprestimoData)
+        body: JSON.stringify({
+          usuario_id: parseInt(formData.usuario_id),
+          eqp_id: parseInt(formData.eqp_id),
+          data_dev_prevista: formData.data_dev_prevista
+        })
       });
 
       const data = await response.json();
       if (data.sucesso) {
         buscarDados();
-        setOpenDialog(false);
-        setEmprestimoData({ usuario_id: '', eqp_id: '', data_dev_prevista: '' });
+        setShowModal(false);
+        setFormData({ usuario_id: '', eqp_id: '', data_dev_prevista: '' });
       } else {
         setError(data.mensagem || 'Erro ao registrar empréstimo');
       }
     } catch (err) {
+      setError('Erro ao registrar empréstimo');
       console.error(err);
     }
   };
 
   const handleDevolucao = async (id) => {
+    if (!confirm('Tem certeza que deseja registrar a devolução?')) return;
+    
     try {
       const response = await fetch(`/api/emprestimos/${id}/devolver`, { method: 'PUT' });
       const data = await response.json();
       if (data.sucesso) {
         buscarDados();
+      } else {
+        setError(data.mensagem || 'Erro ao registrar devolução');
       }
     } catch (err) {
+      setError('Erro ao registrar devolução');
       console.error(err);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({ usuario_id: '', eqp_id: '', data_dev_prevista: '' });
+  };
+
+  const getClienteNome = (usuarioId) => {
+    const cliente = clientes.find(c => c.id_user === usuarioId);
+    return cliente ? cliente.nome_usuario : 'N/A';
+  };
+
+  const getEquipamentoNome = (eqpId) => {
+    const equip = equipamentos.find(e => e.id_eqp === eqpId);
+    return equip ? equip.nome_eqp : 'N/A';
+  };
+
+  const getStatusColor = (status) => {
+    return status === 'Aberto' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800';
   };
 
   if (loading) {
@@ -98,72 +126,10 @@ export default function Emprestimos() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Empréstimos</h1>
-          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-orange-600 hover:bg-orange-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Empréstimo
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Registrar Novo Empréstimo</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
-                  <select
-                    required
-                    value={emprestimoData.usuario_id}
-                    onChange={(e) => setEmprestimoData({ ...emprestimoData, usuario_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Selecione um cliente</option>
-                    {clientes.map((cli) => (
-                      <option key={cli.id_user} value={cli.id_user}>
-                        {cli.nome_usuario}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Equipamento</label>
-                  <select
-                    required
-                    value={emprestimoData.eqp_id}
-                    onChange={(e) => setEmprestimoData({ ...emprestimoData, eqp_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="">Selecione um equipamento</option>
-                    {equipamentos
-                      .filter((eq) => eq.status_eqp === 'Disponivel')
-                      .map((eq) => (
-                        <option key={eq.id_eqp} value={eq.id_eqp}>
-                          {eq.nome_eqp}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data Prevista de Devolução</label>
-                  <Input
-                    required
-                    type="date"
-                    value={emprestimoData.data_dev_prevista}
-                    onChange={(e) => setEmprestimoData({ ...emprestimoData, data_dev_prevista: e.target.value })}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={() => setOpenDialog(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-                    Registrar
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setShowModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Empréstimo
+          </Button>
         </div>
 
         {error && (
@@ -172,57 +138,43 @@ export default function Emprestimos() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Equipamento</TableHead>
                 <TableHead>Data Saída</TableHead>
-                <TableHead>Data Prevista</TableHead>
-                <TableHead>Data Devolução</TableHead>
+                <TableHead>Data Devolução Prevista</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {emprestimos.length === 0 ? (
+              {emprestimos && emprestimos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan="7" className="text-center py-8 text-gray-500">
+                  <TableCell colSpan="6" className="text-center py-8 text-gray-500">
                     Nenhum empréstimo registrado
                   </TableCell>
                 </TableRow>
               ) : (
-                emprestimos.map((emp) => (
-                  <TableRow key={emp.id_empr}>
-                    <TableCell className="font-medium">{emp.nome_usuario}</TableCell>
-                    <TableCell>{emp.nome_eqp}</TableCell>
-                    <TableCell>{new Date(emp.data_saida).toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell>{new Date(emp.data_dev_prevista).toLocaleDateString('pt-BR')}</TableCell>
+                emprestimos.map((emprestimo) => (
+                  <TableRow key={emprestimo.id_empr}>
+                    <TableCell className="font-medium">{getClienteNome(emprestimo.usuario_id)}</TableCell>
+                    <TableCell>{getEquipamentoNome(emprestimo.eqp_id)}</TableCell>
+                    <TableCell>{new Date(emprestimo.data_saida).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>{new Date(emprestimo.data_dev_prevista).toLocaleDateString('pt-BR')}</TableCell>
                     <TableCell>
-                      {emp.data_dev_real ? new Date(emp.data_dev_real).toLocaleDateString('pt-BR') : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {emp.status_empr === 'Aberto' ? (
-                          <>
-                            <AlertCircle className="w-4 h-4 text-orange-600" />
-                            <span className="text-orange-600 font-medium">Aberto</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-green-600 font-medium">Devolvido</span>
-                          </>
-                        )}
-                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(emprestimo.status_empr)}`}>
+                        {emprestimo.status_empr}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      {emp.status_empr === 'Aberto' && (
+                      {emprestimo.status_empr === 'Aberto' && (
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                          onClick={() => handleDevolucao(emp.id_empr)}
+                          variant="outline"
+                          onClick={() => handleDevolucao(emprestimo.id_empr)}
                         >
                           Registrar Devolução
                         </Button>
@@ -235,6 +187,73 @@ export default function Emprestimos() {
           </Table>
         </div>
       </div>
+
+      {/* Modal Simples */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={handleCloseModal}
+          />
+          <div className="relative z-50 w-full max-w-lg bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Novo Empréstimo</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                <select
+                  required
+                  value={formData.usuario_id}
+                  onChange={(e) => setFormData({ ...formData, usuario_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione um cliente</option>
+                  {clientes.map((cliente) => (
+                    <option key={cliente.id_user} value={cliente.id_user}>
+                      {cliente.nome_usuario}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Equipamento</label>
+                <select
+                  required
+                  value={formData.eqp_id}
+                  onChange={(e) => setFormData({ ...formData, eqp_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione um equipamento</option>
+                  {equipamentos
+                    .filter((eq) => eq.status_eqp === 'Disponivel')
+                    .map((equip) => (
+                      <option key={equip.id_eqp} value={equip.id_eqp}>
+                        {equip.nome_eqp}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Data de Devolução Prevista</label>
+                <Input
+                  required
+                  type="date"
+                  value={formData.data_dev_prevista}
+                  onChange={(e) => setFormData({ ...formData, data_dev_prevista: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2 justify-end mt-6">
+                <Button type="button" variant="outline" onClick={handleCloseModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  Criar Empréstimo
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
